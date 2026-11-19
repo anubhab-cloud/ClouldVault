@@ -1,0 +1,110 @@
+import { authStorage } from './authStorage';
+
+// In development, mobile emulator connects to host machine on localhost (iOS) or 10.0.2.2 (Android)
+const BASE_URL = 'http://localhost:4000/api/v1';
+
+interface RequestOptions extends RequestInit {
+  requiresAuth?: boolean;
+}
+
+export class ApiError extends Error {
+  code: string;
+  statusCode: number;
+
+  constructor(code: string, message: string, statusCode: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.code = code;
+    this.statusCode = statusCode;
+  }
+}
+
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function onRefreshed(token: string) {
+  refreshSubscribers.forEach((callback) => callback(token));
+  refreshSubscribers = [];
+}
+
+function addRefreshSubscriber(callback: (token: string) => void) {
+  refreshSubscribers.push(callback);
+}
+
+export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
+  const { requiresAuth = true, headers = {}, ...rest } = options;
+
+  const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
+  const requestHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(headers as Record<string, string>),
+  };
+
+  if (requiresAuth) {
+    const token = await authStorage.getAccessToken();
+    if (token) {
+      requestHeaders['Authorization'] = `Bearer ${token}`;
+    }
+  }
+
+  let response = await fetch(url, {
+    headers: requestHeaders,
+    ...rest,
+  });
+
+  // Handle 401 Unauthorized -> Attempt refresh token rotation
+  if (response.status === 401 && requiresAuth) {
+    if (!isRefreshing) {
+      isRefreshing = true;
+      const refreshToken = await authStorage.getRefreshToken();
+
+      if (refreshToken) {
+        try {
+          const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          const refreshJson = await refreshRes.json();
+          if (refreshRes.ok && refreshJson.success && refreshJson.data) {
+            const { accessToken, refreshToken: newRefresh } = refreshJson.data;
+            await authStorage.setAccessToken(accessToken);
+            await authStorage.setRefreshToken(newRefresh);
+            isRefreshing = false;
+            onRefreshed(accessToken);
+
+            // Retry original request with new token
+            requestHeaders['Authorization'] = `Bearer ${accessToken}`;
+            response = await fetch(url, { headers: requestHeaders, ...rest });
+          } else {
+            isRefreshing = false;
+            await authStorage.clearAll();
+          }
+        } catch {
+          isRefreshing = false;
+          await authStorage.clearAll();
+        }
+      } else {
+        isRefreshing = false;
+      }
+    } else {
+      // Queue requests until refresh completes
+      const newToken = await new Promise<string>((resolve) => {
+        addRefreshSubscriber((token) => resolve(token));
+      });
+      requestHeaders['Authorization'] = `Bearer ${newToken}`;
+      response = await fetch(url, { headers: requestHeaders, ...rest });
+    }
+  }
+
+  const json = await response.json();
+
+  if (!response.ok || !json.success) {
+    const code = json.error?.code || 'REQUEST_FAILED';
+    const message = json.error?.message || 'API request failed';
+    throw new ApiError(code, message, response.status);
+  }
+
+  return json.data as T;
+}

@@ -1,0 +1,27 @@
+{
+  "name": "cloudvault",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CloudVault - Centralized multi-cloud photo and video manager",
+  "workspaces": [
+    "packages/*",
+    "mobile",
+    "backend"
+  ],
+  "scripts": {
+    "mobile": "npm --workspace=mobile run start",
+    "backend": "npm --workspace=backend run dev",
+    "test": "npm --workspace=backend run test",
+    "typecheck": "npm --workspace=@cloudvault/types run typecheck && npm --workspace=mobile run typecheck && npm --workspace=backend run typecheck",
+    "build:backend": "npm --workspace=backend run build"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "google-drive",
+    "google-photos",
+    "gallery"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}
