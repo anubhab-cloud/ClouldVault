@@ -242,8 +242,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   mainImage: {
-    width: '100%',
-    height: '100%',
+    width: '100%' as const,
+    height: '100%' as const,
   },
   bottomBar: {
     borderTopLeftRadius: 16,

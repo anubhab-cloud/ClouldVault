@@ -30,7 +30,7 @@ export default function TabLayout() {
         options={{
           title: 'Gallery',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color as string} />
           ),
         }}
       />
@@ -39,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: 'Albums',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'folder' : 'folder-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'folder' : 'folder-outline'} size={size} color={color as string} />
           ),
         }}
       />
@@ -48,7 +48,7 @@ export default function TabLayout() {
         options={{
           title: 'Accounts',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'cloud-done' : 'cloud-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'cloud-done' : 'cloud-outline'} size={size} color={color as string} />
           ),
         }}
       />
@@ -57,7 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color as string} />
           ),
         }}
       />
