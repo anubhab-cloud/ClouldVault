@@ -1,7 +1,23 @@
 import { authStorage } from './authStorage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// In development, mobile emulator connects to host machine on localhost (iOS) or 10.0.2.2 (Android)
-const BASE_URL = 'http://localhost:4000/api/v1';
+const getBaseUrl = (): string => {
+  // 1. If running via Expo (Expo Go or dev client), connect using host machine LAN IP
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const ip = hostUri.split(':')[0];
+    if (ip && ip !== 'localhost' && ip !== '127.0.0.1') {
+      return `http://${ip}:4000/api/v1`;
+    }
+  }
+  // 2. Android emulator loopback alias
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:4000/api/v1';
+  }
+  // 3. Web or iOS simulator
+  return 'http://localhost:4000/api/v1';
+};
 
 interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
@@ -34,7 +50,8 @@ function addRefreshSubscriber(callback: (token: string) => void) {
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { requiresAuth = true, headers = {}, ...rest } = options;
 
-  const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint}`;
+  const baseUrl = getBaseUrl();
+  const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(headers as Record<string, string>),
@@ -60,7 +77,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
       if (refreshToken) {
         try {
-          const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+          const refreshRes = await fetch(`${baseUrl}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ refreshToken }),

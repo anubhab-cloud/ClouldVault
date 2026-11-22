@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
+    "start": "node start.js start",
+    "android": "node start.js start --android",
+    "ios": "node start.js start --ios",
+    "web": "node start.js start --web",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
