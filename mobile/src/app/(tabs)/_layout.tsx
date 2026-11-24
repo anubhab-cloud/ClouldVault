@@ -2,35 +2,60 @@ import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
+import { View, Platform } from 'react-native';
 
 export default function TabLayout() {
   const { theme } = useTheme();
+
+  const tabBarBg = theme.colors.surface;
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.primary,
+        tabBarActiveTintColor: theme.colors.primaryContent,
         tabBarInactiveTintColor: theme.colors.textSubtle,
         tabBarStyle: {
-          backgroundColor: theme.colors.surface,
+          backgroundColor: tabBarBg,
           borderTopColor: theme.colors.borderSubtle,
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 6,
+          height: Platform.OS === 'ios' ? 80 : 68,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+          paddingTop: 8,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
         },
+        // Active tab gets an indigo pill background
+        tabBarItemStyle: { borderRadius: 16 },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Gallery',
+          title: 'Home',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'images' : 'images-outline'} size={size} color={color as string} />
+            <View
+              style={
+                focused
+                  ? {
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      marginBottom: -2,
+                    }
+                  : undefined
+              }
+            >
+              <Ionicons
+                name="home"
+                size={focused ? size - 2 : size}
+                color={focused ? '#FFFFFF' : (color as string)}
+              />
+            </View>
           ),
         }}
       />
@@ -39,7 +64,25 @@ export default function TabLayout() {
         options={{
           title: 'Albums',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'folder' : 'folder-outline'} size={size} color={color as string} />
+            <View
+              style={
+                focused
+                  ? {
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      marginBottom: -2,
+                    }
+                  : undefined
+              }
+            >
+              <Ionicons
+                name="grid"
+                size={focused ? size - 2 : size}
+                color={focused ? '#FFFFFF' : (color as string)}
+              />
+            </View>
           ),
         }}
       />
@@ -48,7 +91,25 @@ export default function TabLayout() {
         options={{
           title: 'Accounts',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'cloud-done' : 'cloud-outline'} size={size} color={color as string} />
+            <View
+              style={
+                focused
+                  ? {
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      marginBottom: -2,
+                    }
+                  : undefined
+              }
+            >
+              <Ionicons
+                name="cloud"
+                size={focused ? size - 2 : size}
+                color={focused ? '#FFFFFF' : (color as string)}
+              />
+            </View>
           ),
         }}
       />
@@ -57,7 +118,25 @@ export default function TabLayout() {
         options={{
           title: 'Settings',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'settings' : 'settings-outline'} size={size} color={color as string} />
+            <View
+              style={
+                focused
+                  ? {
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: 14,
+                      paddingHorizontal: 14,
+                      paddingVertical: 6,
+                      marginBottom: -2,
+                    }
+                  : undefined
+              }
+            >
+              <Ionicons
+                name="options"
+                size={focused ? size - 2 : size}
+                color={focused ? '#FFFFFF' : (color as string)}
+              />
+            </View>
           ),
         }}
       />

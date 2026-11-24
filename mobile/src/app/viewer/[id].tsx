@@ -1,37 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   useWindowDimensions,
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { mockPhotos } from '@/store/mockData';
+import { Photo } from '@cloudvault/types';
+
+function formatFileSize(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  return `${(bytes / 1024).toFixed(0)} KB`;
+}
+
+function formatCaptureDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+const STRIP_GRADIENTS: [string, string][] = [
+  ['#5BAEDB', '#3B6DC8'],
+  ['#E8855A', '#8B4FA0'],
+  ['#D4A45A', '#7A5B2E'],
+  ['#F0855A', '#D44560'],
+  ['#C77FDE', '#6B42C8'],
+];
 
 export default function MediaViewerModal() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { theme, spacing, radius, typography } = useTheme();
-  const { width, height } = useWindowDimensions();
+  const { theme, spacing, radius } = useTheme();
+  const { width } = useWindowDimensions();
 
-  const [isInfoExpanded, setIsInfoExpanded] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   const storePhotos = useAppStore((state) => state.photos);
+  const albums = useAppStore((state) => state.albums);
   const photo = storePhotos.find((p) => p.id === id) || mockPhotos.find((p) => p.id === id);
+
+  // Build a "filmstrip" of nearby photos for the bottom strip
+  const allPhotos = storePhotos.length > 0 ? storePhotos : mockPhotos;
+  const currentIndex = allPhotos.findIndex((p) => p.id === id);
 
   if (!photo) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: '#000000' }]}>
+      <SafeAreaView style={[styles.root, { backgroundColor: '#000' }]}>
         <View style={styles.notFound}>
-          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Media item not found</Text>
+          <Text style={{ color: '#FFF', fontSize: 16 }}>Media item not found</Text>
           <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16 }}>
             <Text style={{ color: theme.colors.primary, fontSize: 14 }}>Go Back</Text>
           </TouchableOpacity>
@@ -40,15 +71,8 @@ export default function MediaViewerModal() {
     );
   }
 
-  const formatFileSize = (bytes: number): string => {
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(2)} MB`;
-  };
-
-  const albums = useAppStore((state) => state.albums);
-
-  const handleAction = async (type: string) => {
-    if (type === 'Add to Album') {
+  const handleAction = (type: 'Organize' | 'Download' | 'Open' | 'Adjust') => {
+    if (type === 'Organize') {
       if (albums.length === 0) {
         Alert.alert('No Albums', 'Create an album in the Albums tab first.');
         return;
@@ -59,212 +83,225 @@ export default function MediaViewerModal() {
         [
           ...albums.map((alb) => ({
             text: alb.name,
-            onPress: async () => {
-              Alert.alert('Photo Added', `Added ${photo.filename} to ${alb.name}`);
-            },
+            onPress: () => Alert.alert('Photo Added', `Added to ${alb.name}`),
           })),
           { text: 'Cancel', style: 'cancel' as const },
         ]
       );
       return;
     }
-    Alert.alert(type, `Simulated ${type.toLowerCase()} action for ${photo.filename}.`);
+    Alert.alert(type, `Simulated ${type.toLowerCase()} for ${photo.filename}.`);
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: '#000000' }]}>
-      {/* Top Overlay Bar */}
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
+      {/* ── Top bar ── */}
       <SafeAreaView edges={['top']} style={styles.topBar}>
         <TouchableOpacity
           onPress={() => router.back()}
-          style={[styles.iconButton, { backgroundColor: 'rgba(0, 0, 0, 0.55)', borderRadius: radius.pill }]}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={[styles.iconBtn, { backgroundColor: theme.colors.surface, borderRadius: radius.md }]}
         >
-          <Ionicons name="close" size={22} color="#FFFFFF" />
+          <Ionicons name="chevron-back" size={20} color={theme.colors.text} />
         </TouchableOpacity>
 
-        <View style={styles.topTitleContainer}>
-          <Text style={[typography.caption, { color: '#FFFFFF', fontWeight: '600' }]} numberOfLines={1}>
-            {photo.filename}
-          </Text>
-          <Text style={[typography.micro, { color: 'rgba(255, 255, 255, 0.7)' }]} numberOfLines={1}>
+        <View style={styles.topCenter}>
+          <Text style={[styles.topTitle, { color: theme.colors.text }]}>Media Viewer</Text>
+          <Text style={[styles.topSub, { color: theme.colors.primary }]} numberOfLines={1}>
             {photo.accountEmail}
           </Text>
         </View>
 
         <TouchableOpacity
-          onPress={() => setIsInfoExpanded(!isInfoExpanded)}
-          style={[
-            styles.iconButton,
-            {
-              backgroundColor: isInfoExpanded ? theme.colors.primary : 'rgba(0, 0, 0, 0.55)',
-              borderRadius: radius.pill,
-            },
-          ]}
+          onPress={() => Alert.alert('Options', 'Share / Move / Delete')}
+          style={[styles.iconBtn, { backgroundColor: theme.colors.surface, borderRadius: radius.md }]}
         >
-          <Ionicons name="information-circle-outline" size={22} color="#FFFFFF" />
+          <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.text} />
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* Main Media Preview */}
-      <View style={[styles.imageWrapper, { width, height: height * 0.75 }]}>
-        <Image
-          source={{ uri: photo.previewUrl }}
-          style={styles.mainImage}
-          contentFit="contain"
-          transition={300}
-          cachePolicy="memory-disk"
-        />
+      {/* ── Main image ── */}
+      <View style={[styles.imageWrap, { borderRadius: radius.xl, margin: spacing.lg, marginTop: 80 }]}>
+        {photo.previewUrl ? (
+          <Image
+            source={{ uri: photo.previewUrl }}
+            style={[styles.mainImage, { borderRadius: radius.xl }]}
+            contentFit="cover"
+            transition={300}
+            cachePolicy="memory-disk"
+          />
+        ) : (
+          <LinearGradient
+            colors={['#E8855A', '#8B4FA0']}
+            style={[styles.mainImage, { borderRadius: radius.xl }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+        )}
+        {/* Count overlay */}
+        <View style={[styles.countBadge, { borderRadius: radius.pill, bottom: 14, left: 14 }]}>
+          <Text style={styles.countText}>
+            {currentIndex >= 0 ? `${currentIndex + 1} of ${allPhotos.length}` : '—'}
+          </Text>
+        </View>
       </View>
 
-      {/* Bottom Metadata Drawer / Action Bar */}
-      <SafeAreaView edges={['bottom']} style={[styles.bottomBar, { backgroundColor: theme.colors.surface }]}>
-        {/* Quick Actions */}
-        <View style={[styles.quickActionsRow, { paddingHorizontal: spacing.xl, paddingVertical: spacing.md }]}>
-          <TouchableOpacity onPress={() => handleAction('Share')} style={styles.actionItem}>
-            <Ionicons name="share-outline" size={20} color={theme.colors.text} />
-            <Text style={[typography.micro, { color: theme.colors.textSubtle, marginTop: 4 }]}>Share</Text>
-          </TouchableOpacity>
+      {/* ── Filmstrip ── */}
+      <FlatList
+        data={allPhotos}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(p) => p.id}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg }}
+        style={{ maxHeight: 72, flexGrow: 0 }}
+        renderItem={({ item, index }) => {
+          const isActive = item.id === photo.id;
+          return (
+            <TouchableOpacity
+              onPress={() =>
+                router.replace({ pathname: '/viewer/[id]', params: { id: item.id } })
+              }
+              style={[
+                styles.strip,
+                {
+                  borderRadius: radius.md,
+                  borderWidth: isActive ? 2 : 0,
+                  borderColor: isActive ? theme.colors.primary : 'transparent',
+                  marginRight: 8,
+                },
+              ]}
+            >
+              {item.thumbnailUrl ? (
+                <Image
+                  source={{ uri: item.thumbnailUrl }}
+                  style={[styles.stripImg, { borderRadius: radius.md }]}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                />
+              ) : (
+                <LinearGradient
+                  colors={STRIP_GRADIENTS[index % STRIP_GRADIENTS.length]}
+                  style={[styles.stripImg, { borderRadius: radius.md }]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+              )}
+            </TouchableOpacity>
+          );
+        }}
+      />
 
-          <TouchableOpacity onPress={() => handleAction('Add to Album')} style={styles.actionItem}>
-            <Ionicons name="folder-outline" size={20} color={theme.colors.text} />
-            <Text style={[typography.micro, { color: theme.colors.textSubtle, marginTop: 4 }]}>Album</Text>
-          </TouchableOpacity>
+      {/* ── Info card ── */}
+      <View
+        style={[
+          styles.infoCard,
+          {
+            backgroundColor: theme.colors.surface,
+            borderRadius: radius.xl,
+            marginHorizontal: spacing.lg,
+            marginTop: spacing.md,
+            padding: spacing.lg,
+          },
+        ]}
+      >
+        <Text style={[styles.infoLabel, { color: theme.colors.textSubtle }]}>Capture date</Text>
+        <Text style={[styles.infoDate, { color: theme.colors.text }]}>
+          {formatCaptureDate(photo.capturedAt)}
+        </Text>
+        {photo.metadata?.locationName && (
+          <Text style={[styles.infoLoc, { color: theme.colors.textMuted }]}>
+            {photo.metadata.locationName}
+          </Text>
+        )}
 
-          <TouchableOpacity onPress={() => handleAction('Download')} style={styles.actionItem}>
-            <Ionicons name="download-outline" size={20} color={theme.colors.text} />
-            <Text style={[typography.micro, { color: theme.colors.textSubtle, marginTop: 4 }]}>Export</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => setIsInfoExpanded(!isInfoExpanded)} style={styles.actionItem}>
-            <Ionicons name="list-outline" size={20} color={theme.colors.primary} />
-            <Text style={[typography.micro, { color: theme.colors.primary, marginTop: 4 }]}>Details</Text>
-          </TouchableOpacity>
+        <View style={[styles.infoGrid, { marginTop: spacing.md }]}>
+          <View>
+            <Text style={[styles.infoLabel, { color: theme.colors.textSubtle }]}>Hardware</Text>
+            <Text style={[styles.infoVal, { color: theme.colors.text }]}>
+              {photo.metadata?.cameraModel ?? '—'}
+            </Text>
+          </View>
+          <View>
+            <Text style={[styles.infoLabel, { color: theme.colors.textSubtle }]}>File</Text>
+            <Text style={[styles.infoVal, { color: theme.colors.text }]}>
+              {`${formatFileSize(photo.sizeBytes)} · ${photo.mimeType.split('/')[1]?.toUpperCase() ?? 'FILE'}`}
+            </Text>
+          </View>
         </View>
+      </View>
 
-        {/* Expandable EXIF Info Sheet */}
-        {isInfoExpanded && (
-          <ScrollView
+      {/* ── Action bar ── */}
+      <SafeAreaView edges={['bottom']} style={[styles.actionBar, { marginHorizontal: spacing.lg, marginTop: spacing.md }]}>
+        {(['Organize', 'Download', 'Open', 'Adjust'] as const).map((action) => (
+          <TouchableOpacity
+            key={action}
+            activeOpacity={0.75}
+            onPress={() => handleAction(action)}
             style={[
-              styles.infoSheet,
+              styles.actionBtn,
               {
-                maxHeight: 220,
-                borderTopColor: theme.colors.borderSubtle,
-                paddingHorizontal: spacing.lg,
-                paddingBottom: spacing.lg,
+                backgroundColor: theme.colors.surface,
+                borderRadius: radius.lg,
               },
             ]}
           >
-            <Text style={[typography.titleSmall, { color: theme.colors.text, marginVertical: spacing.sm }]}>
-              Details & Metadata
-            </Text>
-
-            <View style={styles.metaRow}>
-              <Text style={[typography.caption, { color: theme.colors.textSubtle }]}>Captured Date</Text>
-              <Text style={[typography.caption, { color: theme.colors.text, fontWeight: '600' }]}>
-                {new Date(photo.capturedAt).toLocaleString()}
-              </Text>
-            </View>
-
-            <View style={styles.metaRow}>
-              <Text style={[typography.caption, { color: theme.colors.textSubtle }]}>File Size</Text>
-              <Text style={[typography.caption, { color: theme.colors.text, fontWeight: '600' }]}>
-                {formatFileSize(photo.sizeBytes)} ({photo.mimeType})
-              </Text>
-            </View>
-
-            {photo.metadata?.cameraModel && (
-              <View style={styles.metaRow}>
-                <Text style={[typography.caption, { color: theme.colors.textSubtle }]}>Camera</Text>
-                <Text style={[typography.caption, { color: theme.colors.text, fontWeight: '600' }]}>
-                  {photo.metadata.cameraModel} ({photo.metadata.focalLength}mm, {photo.metadata.exposureTime}, ISO {photo.metadata.iso})
-                </Text>
-              </View>
-            )}
-
-            {photo.metadata?.locationName && (
-              <View style={styles.metaRow}>
-                <Text style={[typography.caption, { color: theme.colors.textSubtle }]}>Location</Text>
-                <Text style={[typography.caption, { color: theme.colors.text, fontWeight: '600' }]}>
-                  {photo.metadata.locationName}
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.metaRow}>
-              <Text style={[typography.caption, { color: theme.colors.textSubtle }]}>Provider Account</Text>
-              <Text style={[typography.caption, { color: theme.colors.primary, fontWeight: '600' }]}>
-                {photo.accountEmail} ({photo.provider === 'google-drive' ? 'Google Drive' : 'Google Photos'})
-              </Text>
-            </View>
-          </ScrollView>
-        )}
+            <Ionicons
+              name={
+                action === 'Organize'
+                  ? 'folder-outline'
+                  : action === 'Download'
+                  ? 'download-outline'
+                  : action === 'Open'
+                  ? 'open-outline'
+                  : 'options-outline'
+              }
+              size={20}
+              color={theme.colors.text}
+            />
+            <Text style={[styles.actionLabel, { color: theme.colors.text }]}>{action}</Text>
+          </TouchableOpacity>
+        ))}
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  notFound: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  root: { flex: 1 },
+  notFound: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   topBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    zIndex: 10,
+    zIndex: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  iconButton: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  topCenter: { flex: 1, alignItems: 'center', marginHorizontal: 10 },
+  topTitle: { fontSize: 16, fontWeight: '700' },
+  topSub: { fontSize: 12, marginTop: 2 },
+  imageWrap: { overflow: 'hidden', flex: 0, height: 340 },
+  mainImage: { width: '100%' as const, height: '100%' as const },
+  countBadge: {
+    position: 'absolute',
+    backgroundColor: 'rgba(10,10,20,0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
-  topTitleContainer: {
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: 12,
-  },
-  imageWrapper: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mainImage: {
-    width: '100%' as const,
-    height: '100%' as const,
-  },
-  bottomBar: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    overflow: 'hidden',
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-  },
-  actionItem: {
-    alignItems: 'center',
-  },
-  infoSheet: {
-    borderTopWidth: 1,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-  },
+  countText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  strip: { width: 60, height: 60, overflow: 'hidden' },
+  stripImg: { width: 60, height: 60 },
+  infoCard: {},
+  infoLabel: { fontSize: 12, fontWeight: '500', marginBottom: 2 },
+  infoDate: { fontSize: 20, fontWeight: '700' },
+  infoLoc: { fontSize: 13, marginTop: 2 },
+  infoGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  infoVal: { fontSize: 15, fontWeight: '700' },
+  actionBar: { flexDirection: 'row', justifyContent: 'space-between' },
+  actionBtn: { flex: 1, alignItems: 'center', paddingVertical: 14, marginHorizontal: 4 },
+  actionLabel: { fontSize: 12, fontWeight: '500', marginTop: 4 },
 });

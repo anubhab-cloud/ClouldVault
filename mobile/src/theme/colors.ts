@@ -1,10 +1,18 @@
 export const palette = {
-  indigo50: '#EEF2FF',
-  indigo100: '#E0E7FF',
-  indigo500: '#6366F1',
-  indigo600: '#4F46E5',
-  indigo700: '#4338CA',
+  // Design system primary — indigo-blue
+  indigo50: '#EEEFFE',
+  indigo100: '#E0E1FF',
+  indigo400: '#7B80F0',
+  indigo500: '#5A5FE0',
+  indigo600: '#4348CC',
+  indigo700: '#3237B8',
 
+  // Design system surface — lavender-grey (from the 3D redesign screenshots)
+  pageBackground: '#ECEEF8', // the light blue-grey page background in all screens
+  surfaceWhite: '#FFFFFF',
+  surfaceGrey: '#F4F5FB',
+
+  // Dark theme surfaces
   charcoal950: '#0B0B0D',
   charcoal900: '#121214',
   charcoal800: '#1A1A1E',
@@ -18,12 +26,21 @@ export const palette = {
   white: '#FFFFFF',
   black: '#000000',
 
+  // Semantic
   emerald500: '#10B981',
   emerald600: '#059669',
   amber500: '#F59E0B',
+  red400: '#F87171',
   red500: '#EF4444',
   red600: '#DC2626',
   sky500: '#0EA5E9',
+
+  // For gradient "hero stacked card" thumbnails
+  gradOrange: ['#E8855A', '#8B4FA0'] as const,
+  gradBlue: ['#5BAEDB', '#3B6DC8'] as const,
+  gradGold: ['#D4A45A', '#7A5B2E'] as const,
+  gradLavender: ['#C77FDE', '#6B42C8'] as const,
+  gradSlate: ['#C4C9DC', '#8A90B0'] as const,
 };
 
 export const darkTheme = {
@@ -57,28 +74,31 @@ export const darkTheme = {
 export const lightTheme = {
   isDark: false,
   colors: {
-    background: '#F8F9FA',
-    surface: palette.white,
-    surfaceElevated: '#FFFFFF',
-    surfaceSubtle: '#F1F3F5',
-    border: '#E2E8F0',
-    borderSubtle: '#EDF2F7',
+    // Page and card backgrounds from the 3D redesign
+    background: palette.pageBackground,
+    surface: palette.surfaceWhite,
+    surfaceElevated: palette.surfaceWhite,
+    surfaceSubtle: palette.surfaceGrey,
+    border: '#E0E2EF',
+    borderSubtle: '#EAEDF8',
 
-    text: '#0F172A',
-    textMuted: '#475569',
-    textSubtle: '#94A3B8',
+    text: '#0E0F1A',
+    textMuted: '#4A4E6A',
+    textSubtle: '#8A8FA8',
 
-    primary: palette.indigo600,
-    primaryHover: palette.indigo700,
+    primary: palette.indigo500,
+    primaryHover: palette.indigo600,
     primaryContent: palette.white,
 
     success: palette.emerald600,
+    successBg: '#D1FAE5',
     warning: palette.amber500,
-    error: palette.red600,
+    error: palette.red500,
+    errorBg: '#FEE2E2',
     info: palette.sky500,
 
-    overlay: 'rgba(0, 0, 0, 0.5)',
-    cardOverlay: 'rgba(0, 0, 0, 0.3)',
+    overlay: 'rgba(14, 15, 26, 0.5)',
+    cardOverlay: 'rgba(14, 15, 26, 0.3)',
   },
 };
 
