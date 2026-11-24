@@ -21,6 +21,7 @@ import { photoService } from '@/services/photoService';
 import { SearchBar } from '@/components/common/SearchBar';
 import { AccountFilterPills } from '@/components/gallery/AccountFilterPill';
 import { LoadingState } from '@/components/common/LoadingState';
+import { EmptyState } from '@/components/common/EmptyState';
 import { Photo } from '@cloudvault/types';
 
 // 8 gradients for "stacked card" hero thumbnails
@@ -158,15 +159,24 @@ export default function GalleryScreen() {
 
         {isLoading ? (
           <LoadingState message="Loading cloud gallery…" />
+        ) : photos.length === 0 ? (
+          <View style={{ marginTop: spacing.xxl }}>
+            <EmptyState
+              icon={<Ionicons name="images-outline" size={48} color={theme.colors.textSubtle} />}
+              title="No Media Found"
+              description="Connect a Google account or adjust your filters to view photos."
+            />
+          </View>
         ) : (
           <>
             {/* ── Hero stacked card (most recent group) ── */}
-            {heroGroup && (
+            {heroGroup && heroGroup.items && heroGroup.items.length > 0 && (
               <View style={[styles.heroSection, { marginHorizontal: spacing.lg, marginTop: spacing.xl }]}>
                 {/* Back cards */}
                 {[2, 1].map((offset) => {
                   const idx = heroGroup.items.length - 1 - offset;
-                  const item = heroGroup.items[idx] || heroGroup.items[0];
+                  const item = (idx >= 0 ? heroGroup.items[idx] : null) || heroGroup.items[0];
+                  if (!item) return null;
                   const rot = offset === 2 ? '-10deg' : '8deg';
                   const marginLeft = offset === 2 ? -20 : 0;
                   return (
@@ -201,28 +211,30 @@ export default function GalleryScreen() {
                 })}
 
                 {/* Front card */}
-                <View style={[styles.heroCardFront, { borderRadius: radius.xl, zIndex: 10 }]}>
-                  {heroGroup.items[0].previewUrl ? (
-                    <Image
-                      source={{ uri: heroGroup.items[0].previewUrl }}
-                      style={[styles.heroCardFront, { borderRadius: radius.xl }]}
-                      contentFit="cover"
-                    />
-                  ) : (
-                    <LinearGradient
-                      colors={heroGradient(0)}
-                      style={[styles.heroCardFront, { borderRadius: radius.xl }]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    />
-                  )}
-                  {/* Label */}
-                  <View style={[styles.heroLabel, { borderRadius: radius.pill, bottom: 16, left: 16 }]}>
-                    <Text style={styles.heroLabelText}>
-                      {heroGroup.label} · {heroGroup.count} item{heroGroup.count !== 1 ? 's' : ''}
-                    </Text>
+                {heroGroup.items[0] && (
+                  <View style={[styles.heroCardFront, { borderRadius: radius.xl, zIndex: 10 }]}>
+                    {heroGroup.items[0].previewUrl ? (
+                      <Image
+                        source={{ uri: heroGroup.items[0].previewUrl }}
+                        style={[styles.heroCardFront, { borderRadius: radius.xl }]}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <LinearGradient
+                        colors={heroGradient(0)}
+                        style={[styles.heroCardFront, { borderRadius: radius.xl }]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                      />
+                    )}
+                    {/* Label */}
+                    <View style={[styles.heroLabel, { borderRadius: radius.pill, bottom: 16, left: 16 }]}>
+                      <Text style={styles.heroLabelText}>
+                        {heroGroup.label} · {heroGroup.count} item{heroGroup.count !== 1 ? 's' : ''}
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                )}
               </View>
             )}
 

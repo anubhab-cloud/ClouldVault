@@ -62,8 +62,10 @@ export const darkTheme = {
     primaryContent: palette.white,
 
     success: palette.emerald500,
+    successBg: 'rgba(16, 185, 129, 0.2)',
     warning: palette.amber500,
     error: palette.red500,
+    errorBg: 'rgba(239, 68, 68, 0.2)',
     info: palette.sky500,
 
     overlay: 'rgba(0, 0, 0, 0.75)',
