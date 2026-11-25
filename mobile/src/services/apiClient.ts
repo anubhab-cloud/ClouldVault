@@ -36,14 +36,14 @@ export class ApiError extends Error {
 }
 
 let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshSubscribers: ((token: string | null) => void)[] = [];
 
-function onRefreshed(token: string) {
+function onRefreshed(token: string | null) {
   refreshSubscribers.forEach((callback) => callback(token));
   refreshSubscribers = [];
 }
 
-function addRefreshSubscriber(callback: (token: string) => void) {
+function addRefreshSubscriber(callback: (token: string | null) => void) {
   refreshSubscribers.push(callback);
 }
 
@@ -97,29 +97,39 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
           } else {
             isRefreshing = false;
             await authStorage.clearAll();
+            onRefreshed(null);
           }
         } catch {
           isRefreshing = false;
           await authStorage.clearAll();
+          onRefreshed(null);
         }
       } else {
         isRefreshing = false;
+        onRefreshed(null);
       }
     } else {
       // Queue requests until refresh completes
-      const newToken = await new Promise<string>((resolve) => {
+      const newToken = await new Promise<string | null>((resolve) => {
         addRefreshSubscriber((token) => resolve(token));
       });
-      requestHeaders['Authorization'] = `Bearer ${newToken}`;
-      response = await fetch(url, { headers: requestHeaders, ...rest });
+      if (newToken) {
+        requestHeaders['Authorization'] = `Bearer ${newToken}`;
+        response = await fetch(url, { headers: requestHeaders, ...rest });
+      }
     }
   }
 
-  const json = await response.json();
+  let json: any = null;
+  try {
+    json = await response.json();
+  } catch {
+    throw new ApiError('INVALID_RESPONSE', `Server returned status ${response.status}`, response.status);
+  }
 
-  if (!response.ok || !json.success) {
-    const code = json.error?.code || 'REQUEST_FAILED';
-    const message = json.error?.message || 'API request failed';
+  if (!response.ok || !json?.success) {
+    const code = json?.error?.code || 'REQUEST_FAILED';
+    const message = json?.error?.message || 'API request failed';
     throw new ApiError(code, message, response.status);
   }
 

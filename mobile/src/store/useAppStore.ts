@@ -17,11 +17,13 @@ interface AppState {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   isSyncing: boolean;
+  lastSyncedAt: Date;
   triggerSync: () => void;
 
   // Albums
   albums: Album[];
   createAlbum: (name: string, description?: string) => void;
+  addPhotoToAlbum: (albumId: string) => void;
 
   // Storage
   storage: StorageDashboardSummary;
@@ -60,10 +62,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   searchQuery: '',
   setSearchQuery: (query) => set({ searchQuery: query }),
   isSyncing: false,
+  lastSyncedAt: new Date(Date.now() - 13 * 60 * 1000),
   triggerSync: () => {
     set({ isSyncing: true });
     setTimeout(() => {
-      set({ isSyncing: false });
+      set({ isSyncing: false, lastSyncedAt: new Date() });
     }, 1500);
   },
 
@@ -81,6 +84,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       };
       return { albums: [newAlbum, ...state.albums] };
     }),
+  addPhotoToAlbum: (albumId) =>
+    set((state) => ({
+      albums: state.albums.map((a) =>
+        a.id === albumId ? { ...a, photoCount: a.photoCount + 1, updatedAt: new Date().toISOString() } : a
+      ),
+    })),
 
   storage: mockStorageDashboard,
 }));

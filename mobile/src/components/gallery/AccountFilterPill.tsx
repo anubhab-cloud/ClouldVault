@@ -31,30 +31,24 @@ export const AccountFilterPills: React.FC<AccountFilterPillsProps> = ({
           styles.pill,
           {
             borderRadius: radius.pill,
-            backgroundColor: selectedAccountId === null ? theme.colors.primary : theme.colors.surfaceElevated,
-            borderColor: selectedAccountId === null ? theme.colors.primary : theme.colors.borderSubtle,
+            backgroundColor: selectedAccountId === null ? theme.colors.text : theme.colors.surface,
+            borderColor: selectedAccountId === null ? theme.colors.text : theme.colors.borderSubtle,
             paddingHorizontal: spacing.md,
-            paddingVertical: spacing.xs + 2,
+            paddingVertical: spacing.sm,
             marginRight: spacing.sm,
           },
         ]}
       >
-        <Ionicons
-          name="layers-outline"
-          size={14}
-          color={selectedAccountId === null ? theme.colors.primaryContent : theme.colors.textMuted}
-          style={styles.icon}
-        />
         <Text
           style={[
             typography.caption,
             {
               fontWeight: '600',
-              color: selectedAccountId === null ? theme.colors.primaryContent : theme.colors.textMuted,
+              color: selectedAccountId === null ? theme.colors.surface : theme.colors.text,
             },
           ]}
         >
-          All Accounts
+          All accounts
         </Text>
       </TouchableOpacity>
 
@@ -72,26 +66,20 @@ export const AccountFilterPills: React.FC<AccountFilterPillsProps> = ({
               styles.pill,
               {
                 borderRadius: radius.pill,
-                backgroundColor: isSelected ? theme.colors.primary : theme.colors.surfaceElevated,
-                borderColor: isSelected ? theme.colors.primary : theme.colors.borderSubtle,
+                backgroundColor: isSelected ? theme.colors.text : theme.colors.surface,
+                borderColor: isSelected ? theme.colors.text : theme.colors.borderSubtle,
                 paddingHorizontal: spacing.md,
-                paddingVertical: spacing.xs + 2,
+                paddingVertical: spacing.sm,
                 marginRight: spacing.sm,
               },
             ]}
           >
-            <Ionicons
-              name={acc.provider === 'google-drive' ? 'logo-google' : 'images-outline'}
-              size={13}
-              color={isSelected ? theme.colors.primaryContent : theme.colors.textMuted}
-              style={styles.icon}
-            />
             <Text
               style={[
                 typography.caption,
                 {
                   fontWeight: '600',
-                  color: isSelected ? theme.colors.primaryContent : theme.colors.textMuted,
+                  color: isSelected ? theme.colors.surface : theme.colors.text,
                 },
               ]}
               numberOfLines={1}

@@ -13,7 +13,7 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({
   value,
   onChangeText,
-  placeholder = 'Search by filename, year, or location...',
+  placeholder = 'Search filename, date or tag',
   onClear,
 }) => {
   const { theme, radius, spacing, typography } = useTheme();
@@ -23,12 +23,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       style={[
         styles.container,
         {
-          backgroundColor: theme.colors.surfaceElevated,
-          borderRadius: radius.md,
+          backgroundColor: theme.colors.surface,
+          borderRadius: radius.pill,
           borderColor: theme.colors.borderSubtle,
-          marginHorizontal: spacing.lg,
-          marginVertical: spacing.sm,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: 2,
         },
       ]}
     >

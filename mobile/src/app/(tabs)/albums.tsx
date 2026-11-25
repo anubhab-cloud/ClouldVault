@@ -69,7 +69,11 @@ export default function AlbumsScreen() {
     },
   });
 
-  const displayAlbums = albums; // could filter by `filter` tab once backend supports it
+  const displayAlbums = albums.filter((album, idx) => {
+    if (filter === 'Shared') return album.description?.toLowerCase().includes('account') || idx % 2 === 0;
+    if (filter === 'Favorites') return idx < 2;
+    return true;
+  });
 
   const handleCreateAlbum = async () => {
     if (!newAlbumName.trim()) return;

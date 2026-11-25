@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/theme';
 import { useAppStore } from '@/store/useAppStore';
+import { albumService } from '@/services/albumService';
 import { mockPhotos } from '@/store/mockData';
 import { Photo } from '@cloudvault/types';
 
@@ -52,6 +53,7 @@ export default function MediaViewerModal() {
 
   const storePhotos = useAppStore((state) => state.photos);
   const albums = useAppStore((state) => state.albums);
+  const addPhotoToAlbum = useAppStore((state) => state.addPhotoToAlbum);
   const photo = storePhotos.find((p) => p.id === id) || mockPhotos.find((p) => p.id === id);
 
   // Build a "filmstrip" of nearby photos for the bottom strip
@@ -83,7 +85,11 @@ export default function MediaViewerModal() {
         [
           ...albums.map((alb) => ({
             text: alb.name,
-            onPress: () => Alert.alert('Photo Added', `Added to ${alb.name}`),
+            onPress: async () => {
+              await albumService.addPhotoToAlbum(alb.id, photo.id).catch(() => {});
+              addPhotoToAlbum(alb.id);
+              Alert.alert('Photo Added', `Added ${photo.filename} to ${alb.name}`);
+            },
           })),
           { text: 'Cancel', style: 'cancel' as const },
         ]

@@ -86,7 +86,7 @@ export default function GalleryScreen() {
   const { theme, spacing, radius } = useTheme();
   const { width } = useWindowDimensions();
 
-  const { accounts, selectedAccountId, setSelectedAccountId, searchQuery, setSearchQuery, isSyncing, triggerSync } =
+  const { accounts, selectedAccountId, setSelectedAccountId, searchQuery, setSearchQuery, isSyncing, lastSyncedAt, triggerSync } =
     useAppStore();
 
   const { data: photos = [], isLoading, refetch, isFetching } = useGalleryPhotos({
@@ -97,7 +97,7 @@ export default function GalleryScreen() {
   const groups = useMemo(() => groupByDate(photos), [photos]);
 
   const cols = 3;
-  const thumbSize = Math.floor((width - (cols - 1) * 2) / cols);
+  const thumbSize = Math.floor((width - spacing.lg * 2 - spacing.sm * (cols - 1)) / cols);
 
   const handleSelectPhoto = (photo: Photo) => {
     router.push({ pathname: '/viewer/[id]', params: { id: photo.id } });
@@ -212,7 +212,11 @@ export default function GalleryScreen() {
 
                 {/* Front card */}
                 {heroGroup.items[0] && (
-                  <View style={[styles.heroCardFront, { borderRadius: radius.xl, zIndex: 10 }]}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    onPress={() => handleSelectPhoto(heroGroup.items[0])}
+                    style={[styles.heroCardFront, { borderRadius: radius.xl, zIndex: 10 }]}
+                  >
                     {heroGroup.items[0].previewUrl ? (
                       <Image
                         source={{ uri: heroGroup.items[0].previewUrl }}
@@ -233,7 +237,7 @@ export default function GalleryScreen() {
                         {heroGroup.label} · {heroGroup.count} item{heroGroup.count !== 1 ? 's' : ''}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 )}
               </View>
             )}
@@ -304,7 +308,7 @@ export default function GalleryScreen() {
               <View style={{ flex: 1, marginLeft: spacing.md }}>
                 <Text style={[styles.syncTitle, { color: theme.colors.text }]}>Cross-cloud sync active</Text>
                 <Text style={[styles.syncSub, { color: theme.colors.textSubtle }]}>
-                  {`Synced ${formatSyncAgo(new Date())} · originals untouched`}
+                  {`Synced ${formatSyncAgo(lastSyncedAt)} · originals untouched`}
                 </Text>
               </View>
             </View>
