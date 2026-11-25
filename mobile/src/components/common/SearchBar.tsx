@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/theme';
+import { useTheme, shadows3D } from '@/theme';
 
 interface SearchBarProps {
   value: string;
@@ -22,12 +22,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     <View
       style={[
         styles.container,
+        shadows3D.soft,
         {
           backgroundColor: theme.colors.surface,
           borderRadius: radius.pill,
-          borderColor: theme.colors.borderSubtle,
+          borderColor: 'rgba(255, 255, 255, 0.9)',
           paddingHorizontal: spacing.lg,
-          paddingVertical: 2,
+          paddingVertical: 4,
         },
       ]}
     >

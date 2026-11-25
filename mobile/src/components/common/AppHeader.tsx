@@ -25,7 +25,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           paddingHorizontal: spacing.lg,
           paddingTop: spacing.md,
           paddingBottom: spacing.sm,
-          backgroundColor: theme.colors.background,
+          backgroundColor: 'transparent',
         },
       ]}
     >

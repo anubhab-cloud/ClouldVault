@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ConnectedAccount } from '@cloudvault/types';
-import { useTheme } from '@/theme';
+import { useTheme, shadows3D } from '@/theme';
 
 interface AccountFilterPillsProps {
   accounts: ConnectedAccount[];
@@ -21,20 +21,21 @@ export const AccountFilterPills: React.FC<AccountFilterPillsProps> = ({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={[styles.container, { paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }]}
+      contentContainerStyle={[styles.container, { paddingHorizontal: spacing.lg, paddingVertical: spacing.xs }]}
     >
       {/* All Accounts Option */}
       <TouchableOpacity
-        activeOpacity={0.7}
+        activeOpacity={0.75}
         onPress={() => onSelectAccount(null)}
         style={[
           styles.pill,
+          shadows3D.soft,
           {
             borderRadius: radius.pill,
             backgroundColor: selectedAccountId === null ? theme.colors.text : theme.colors.surface,
-            borderColor: selectedAccountId === null ? theme.colors.text : theme.colors.borderSubtle,
-            paddingHorizontal: spacing.md,
-            paddingVertical: spacing.sm,
+            borderColor: selectedAccountId === null ? theme.colors.text : 'rgba(255, 255, 255, 0.9)',
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.sm + 1,
             marginRight: spacing.sm,
           },
         ]}
@@ -43,7 +44,7 @@ export const AccountFilterPills: React.FC<AccountFilterPillsProps> = ({
           style={[
             typography.caption,
             {
-              fontWeight: '600',
+              fontWeight: '700',
               color: selectedAccountId === null ? theme.colors.surface : theme.colors.text,
             },
           ]}
@@ -60,16 +61,17 @@ export const AccountFilterPills: React.FC<AccountFilterPillsProps> = ({
         return (
           <TouchableOpacity
             key={acc.id}
-            activeOpacity={0.7}
+            activeOpacity={0.75}
             onPress={() => onSelectAccount(acc.id)}
             style={[
               styles.pill,
+              shadows3D.soft,
               {
                 borderRadius: radius.pill,
                 backgroundColor: isSelected ? theme.colors.text : theme.colors.surface,
-                borderColor: isSelected ? theme.colors.text : theme.colors.borderSubtle,
-                paddingHorizontal: spacing.md,
-                paddingVertical: spacing.sm,
+                borderColor: isSelected ? theme.colors.text : 'rgba(255, 255, 255, 0.9)',
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.sm + 1,
                 marginRight: spacing.sm,
               },
             ]}

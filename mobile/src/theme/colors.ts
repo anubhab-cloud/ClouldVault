@@ -35,12 +35,47 @@ export const palette = {
   red600: '#DC2626',
   sky500: '#0EA5E9',
 
-  // For gradient "hero stacked card" thumbnails
+  // For gradient "hero stacked card" thumbnails & 3D surfaces
+  pageGradient: ['#F6F7FD', '#E5E9F7'] as const,
+  indigoGradient: ['#7378FA', '#4E52D8'] as const,
+  coralGradient: ['#FFB199', '#E65A8E'] as const,
+  orangeGradient: ['#FA7F55', '#E04D28'] as const,
   gradOrange: ['#E8855A', '#8B4FA0'] as const,
   gradBlue: ['#5BAEDB', '#3B6DC8'] as const,
   gradGold: ['#D4A45A', '#7A5B2E'] as const,
   gradLavender: ['#C77FDE', '#6B42C8'] as const,
   gradSlate: ['#C4C9DC', '#8A90B0'] as const,
+};
+
+export const shadows3D = {
+  soft: {
+    shadowColor: '#6C78B8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  card: {
+    shadowColor: '#5B67A8',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    elevation: 7,
+  },
+  hero: {
+    shadowColor: '#252A4A',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  button: {
+    shadowColor: '#4E52D8',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    elevation: 6,
+  },
 };
 
 export const darkTheme = {

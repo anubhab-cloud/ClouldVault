@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/theme';
+import { useTheme, palette, shadows3D } from '@/theme';
 import { useAppStore } from '@/store/useAppStore';
 import { accountService } from '@/services/accountService';
 import { storageService } from '@/services/storageService';
@@ -21,9 +22,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 function formatBytes(bytes: number): string {
   if (!bytes) return '0 B';
-  const gb = bytes / (1024 ** 3);
+  const tb = bytes / 1024 ** 4;
+  if (tb >= 1) return `${tb.toFixed(0)} TB`;
+  const gb = bytes / 1024 ** 3;
   if (gb >= 1) return `${gb.toFixed(1)} GB`;
-  const mb = bytes / (1024 ** 2);
+  const mb = bytes / 1024 ** 2;
   return `${mb.toFixed(0)} MB`;
 }
 
@@ -31,11 +34,11 @@ function avatarLetter(email: string): string {
   return (email?.[0] ?? '?').toUpperCase();
 }
 
-function avatarColor(email: string): string {
-  const palette = ['#5A5FE0', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
-  let hash = 0;
-  for (let i = 0; i < email.length; i++) hash = email.charCodeAt(i) + ((hash << 5) - hash);
-  return palette[Math.abs(hash) % palette.length];
+function avatarGradient(email: string, isExpired: boolean): readonly [string, string] {
+  if (isExpired) return ['#FA7F55', '#E04D28'] as const;
+  const e = email.toLowerCase();
+  if (e.includes('work') || e.includes('consult')) return ['#22C58B', '#0F9D68'] as const;
+  return palette.indigoGradient;
 }
 
 export default function AccountsScreen() {
@@ -45,12 +48,10 @@ export default function AccountsScreen() {
   const [isPicking, setIsPicking] = useState(false);
   const queryClient = useQueryClient();
 
-  // Sync preferences local state
   const [wifiOnly, setWifiOnly] = useState(true);
   const [batterySaver, setBatterySaver] = useState(true);
   const [bgSync, setBgSync] = useState(false);
 
-  // Live storage summary
   const { data: storage = storeStorage } = useQuery<StorageDashboardSummary>({
     queryKey: ['storageSummary'],
     queryFn: async () => {
@@ -93,7 +94,6 @@ export default function AccountsScreen() {
     },
   });
 
-  // Listen for OAuth deep link callback
   useEffect(() => {
     fetchAccounts();
     const handleDeepLink = (event: { url: string }) => {
@@ -223,217 +223,268 @@ export default function AccountsScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* ── Header ── */}
-        <View style={[styles.headerRow, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
-          <View>
-            <Text style={[styles.headerSub, { color: theme.colors.textSubtle }]}>
-              {accounts.length} connected
-            </Text>
-            <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Accounts</Text>
+    <LinearGradient colors={palette.pageGradient} style={styles.root}>
+      <SafeAreaView style={styles.root} edges={['top']}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 110 }}>
+          {/* ── Header ── */}
+          <View style={[styles.headerRow, { paddingHorizontal: spacing.lg, paddingTop: spacing.md }]}>
+            <View>
+              <Text style={[styles.headerSub, { color: theme.colors.textMuted }]}>
+                {accounts.length} connected
+              </Text>
+              <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Accounts</Text>
+            </View>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => queryClient.invalidateQueries({ queryKey: ['storageSummary'] })}
+              style={[styles.refreshBtn, shadows3D.soft, { backgroundColor: theme.colors.surface }]}
+            >
+              <Ionicons name="sync-outline" size={20} color={theme.colors.text} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            activeOpacity={0.75}
-            onPress={() => queryClient.invalidateQueries({ queryKey: ['storageSummary'] })}
-            style={[styles.refreshBtn, { backgroundColor: theme.colors.surface, borderRadius: radius.pill }]}
-          >
-            <Ionicons name="sync-outline" size={18} color={theme.colors.textMuted} />
-          </TouchableOpacity>
-        </View>
 
-        <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
-          {/* ── Connect button ── */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={handleConnectAccount}
-            style={[
-              styles.connectBtn,
-              {
-                backgroundColor: theme.colors.primary,
-                borderRadius: radius.lg,
-                marginBottom: spacing.lg,
-              },
-            ]}
-          >
-            <Ionicons name="add" size={18} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={styles.connectBtnText}>
-              {isConnecting ? 'Opening Google Auth…' : '+ Connect Google Account'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* ── Account cards ── */}
-          {accounts.map((account) => {
-            const isExpired = account.status === 'expired' || account.status === 'revoked';
-            const storageEntry = storage?.accounts?.find((s) => s.account.email === account.email);
-            const usedBytes = storageEntry?.usage?.usedBytes ?? 0;
-            const quotaBytes = storageEntry?.usage?.quotaBytes ?? 1;
-            const usedRatio = Math.min(1, usedBytes / quotaBytes);
-            const letter = avatarLetter(account.email);
-            const bg = avatarColor(account.email);
-
-            return (
-              <View
-                key={account.id}
-                style={[
-                  styles.accountCard,
-                  {
-                    backgroundColor: isExpired ? '#FFF5F5' : theme.colors.surface,
-                    borderRadius: radius.lg,
-                    marginBottom: spacing.md,
-                  },
-                ]}
+          <View style={{ paddingHorizontal: spacing.lg, marginTop: spacing.md }}>
+            {/* ── 3D Connect CTA Button ── */}
+            <TouchableOpacity activeOpacity={0.88} onPress={handleConnectAccount} style={{ marginBottom: spacing.lg }}>
+              <LinearGradient
+                colors={palette.indigoGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={[styles.connectBtn, shadows3D.button]}
               >
-                {/* Row: Avatar + info + status */}
-                <View style={styles.cardTopRow}>
-                  <View style={[styles.avatar, { backgroundColor: bg, borderRadius: radius.md }]}>
-                    <Text style={styles.avatarText}>{letter}</Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: spacing.md }}>
-                    <Text style={[styles.cardEmail, { color: theme.colors.text }]} numberOfLines={1}>
-                      {account.email}
-                    </Text>
-                    <Text style={[styles.cardMeta, { color: theme.colors.textSubtle }]}>
-                      {storageEntry
-                        ? `${formatBytes(usedBytes)} used`
-                        : account.provider === 'google-drive'
-                        ? 'Google Drive'
-                        : 'Google Photos Picker'}
-                    </Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor: isExpired ? '#FEE2E2' : '#D1FAE5',
-                        borderRadius: radius.pill,
-                      },
-                    ]}
-                  >
-                    <Text
+                <Ionicons name="add" size={20} color="#FFF" style={{ marginRight: 8 }} />
+                <Text style={styles.connectBtnText}>
+                  {isConnecting ? 'Opening Google Auth…' : 'Connect Google Account'}
+                </Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            {/* ── Account Cards ── */}
+            {accounts.map((account) => {
+              const isExpired = account.status === 'expired' || account.status === 'revoked';
+              const storageEntry = storage?.accounts?.find((s) => s.account.email === account.email);
+              const usedBytes = storageEntry?.usage?.usedBytes ?? 0;
+              const quotaBytes = storageEntry?.usage?.quotaBytes ?? 1;
+              const usedRatio = Math.min(1, usedBytes / quotaBytes);
+              const letter = avatarLetter(account.email);
+
+              return (
+                <View
+                  key={account.id}
+                  style={[
+                    styles.accountCard,
+                    shadows3D.soft,
+                    {
+                      backgroundColor: isExpired ? '#FFF4F0' : theme.colors.surface,
+                      borderColor: isExpired ? '#FCDFD5' : 'rgba(255, 255, 255, 0.9)',
+                      borderRadius: 22,
+                      marginBottom: spacing.md,
+                    },
+                  ]}
+                >
+                  {/* Row: 3D Avatar + Email + Status Pill */}
+                  <View style={styles.cardTopRow}>
+                    <LinearGradient
+                      colors={avatarGradient(account.email, isExpired)}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={[styles.avatar, shadows3D.soft]}
+                    >
+                      <Text style={styles.avatarText}>{letter}</Text>
+                    </LinearGradient>
+
+                    <View style={{ flex: 1, marginLeft: spacing.md }}>
+                      <Text style={[styles.cardEmail, { color: theme.colors.text }]} numberOfLines={1}>
+                        {account.email}
+                      </Text>
+                      <Text style={[styles.cardMeta, { color: theme.colors.textMuted }]}>
+                        {isExpired
+                          ? 'Authorization expired'
+                          : account.provider === 'google-drive'
+                          ? 'Google Drive · photos & videos'
+                          : 'Google Photos Picker'}
+                      </Text>
+                    </View>
+
+                    <View
                       style={[
-                        styles.statusText,
-                        { color: isExpired ? '#DC2626' : '#059669' },
+                        styles.statusBadge,
+                        {
+                          backgroundColor: isExpired ? '#FEE2DC' : '#DCFCE7',
+                          borderRadius: radius.pill,
+                        },
                       ]}
                     >
-                      {isExpired ? 'Halted' : 'Synced'}
-                    </Text>
+                      <Text style={[styles.statusText, { color: isExpired ? '#C2410C' : '#15803D' }]}>
+                        {isExpired ? 'Halted' : 'Synced'}
+                      </Text>
+                    </View>
                   </View>
-                </View>
 
-                {/* Storage progress */}
-                <View style={[styles.progressTrack, { backgroundColor: theme.colors.borderSubtle, marginTop: 12, borderRadius: 4 }]}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.round(usedRatio * 100)}%` as `${number}%`,
-                        backgroundColor: isExpired ? '#F87171' : theme.colors.primary,
-                        borderRadius: 4,
-                      },
-                    ]}
+                  {isExpired ? (
+                    <TouchableOpacity
+                      activeOpacity={0.88}
+                      onPress={() => handleReauthorize(account)}
+                      style={{ marginTop: 14 }}
+                    >
+                      <LinearGradient
+                        colors={palette.orangeGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 0, y: 1 }}
+                        style={styles.reauthorizeBtn}
+                      >
+                        <Text style={styles.reauthorizeBtnText}>Reauthorize Google Account</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ) : (
+                    <>
+                      {/* Storage progress bar */}
+                      <View style={[styles.progressTrack, { backgroundColor: '#EAEDF8', marginTop: 14 }]}>
+                        <LinearGradient
+                          colors={palette.indigoGradient}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[
+                            styles.progressFill,
+                            { width: `${Math.max(4, Math.round(usedRatio * 100))}%` as `${number}%` },
+                          ]}
+                        />
+                      </View>
+
+                      <View style={[styles.storageRow, { marginTop: 10 }]}>
+                        <Text style={[styles.storageText, { color: theme.colors.textMuted }]}>
+                          {quotaBytes > 0 ? `${formatBytes(usedBytes)} of ${formatBytes(quotaBytes)}` : '—'}
+                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                          {account.provider === 'google-photos' && (
+                            <TouchableOpacity
+                              activeOpacity={0.75}
+                              onPress={() => handlePickPhotos(account)}
+                              style={[styles.managePill, { marginRight: 8, borderColor: theme.colors.primary }]}
+                            >
+                              <Text style={[styles.manageText, { color: theme.colors.primary }]}>
+                                {isPicking ? 'Opening…' : 'Pick Photos'}
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity
+                            activeOpacity={0.75}
+                            onPress={() => handleDisconnect(account)}
+                            style={styles.managePill}
+                          >
+                            <Text style={[styles.manageText, { color: theme.colors.text }]}>Manage</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </>
+                  )}
+                </View>
+              );
+            })}
+
+            {/* ── Sync Preferences Card ── */}
+            <View
+              style={[
+                styles.prefCard,
+                shadows3D.soft,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: 22,
+                  marginTop: spacing.xs,
+                },
+              ]}
+            >
+              <Text style={[styles.prefTitle, { color: theme.colors.text, marginBottom: spacing.sm }]}>
+                Sync preferences
+              </Text>
+              {[
+                { label: 'Sync over Wi-Fi only', value: wifiOnly, onChange: setWifiOnly },
+                { label: 'Respect battery saver', value: batterySaver, onChange: setBatterySaver },
+                { label: 'Background sync every 4h', value: bgSync, onChange: setBgSync },
+              ].map((pref) => (
+                <View key={pref.label} style={styles.prefRow}>
+                  <Text style={[styles.prefLabel, { color: theme.colors.text }]}>{pref.label}</Text>
+                  <Switch
+                    value={pref.value}
+                    onValueChange={pref.onChange}
+                    trackColor={{ false: '#D6DAE8', true: theme.colors.primary }}
+                    thumbColor="#FFFFFF"
                   />
                 </View>
-                <View style={[styles.storageRow, { marginTop: 6 }]}>
-                  <Text style={[styles.storageText, { color: theme.colors.textSubtle }]}>
-                    {quotaBytes > 0 ? `${formatBytes(usedBytes)} of ${formatBytes(quotaBytes)}` : '—'}
-                  </Text>
-                  <TouchableOpacity onPress={() => handleDisconnect(account)}>
-                    <Text style={[styles.manageText, { color: theme.colors.textSubtle }]}>Manage</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Reauthorize CTA when halted */}
-                {isExpired && (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => handleReauthorize(account)}
-                    style={[
-                      styles.reauthorizeBtn,
-                      { backgroundColor: '#F87171', borderRadius: radius.md, marginTop: 12 },
-                    ]}
-                  >
-                    <Text style={styles.reauthorizeBtnText}>Reauthorize Google Account</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Pick photos shortcut for Google Photos accounts */}
-                {account.provider === 'google-photos' && !isExpired && (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => handlePickPhotos(account)}
-                    style={{ marginTop: 10, alignSelf: 'flex-start' }}
-                  >
-                    <Text style={{ color: theme.colors.primary, fontSize: 13, fontWeight: '600' }}>
-                      {isPicking ? 'Opening Picker…' : 'Pick Photos'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            );
-          })}
-
-          {/* ── Sync preferences ── */}
-          <View
-            style={[
-              styles.prefCard,
-              {
-                backgroundColor: theme.colors.surface,
-                borderRadius: radius.lg,
-                marginTop: spacing.sm,
-              },
-            ]}
-          >
-            <Text style={[styles.prefTitle, { color: theme.colors.text, marginBottom: spacing.md }]}>
-              Sync preferences
-            </Text>
-            {[
-              { label: 'Sync over Wi-Fi only', value: wifiOnly, onChange: setWifiOnly },
-              { label: 'Respect battery saver', value: batterySaver, onChange: setBatterySaver },
-              { label: 'Background sync every 4h', value: bgSync, onChange: setBgSync },
-            ].map((pref) => (
-              <View key={pref.label} style={styles.prefRow}>
-                <Text style={[styles.prefLabel, { color: theme.colors.text }]}>{pref.label}</Text>
-                <Switch
-                  value={pref.value}
-                  onValueChange={pref.onChange}
-                  trackColor={{ false: theme.colors.borderSubtle, true: theme.colors.primary }}
-                  thumbColor="#FFF"
-                />
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerSub: { fontSize: 13 },
-  headerTitle: { fontSize: 32, fontWeight: '800', letterSpacing: -0.5, marginTop: 2 },
-  refreshBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  connectBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16 },
-  connectBtnText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  accountCard: { padding: 16 },
+  headerSub: { fontSize: 13, fontWeight: '500' },
+  headerTitle: { fontSize: 32, fontWeight: '800', letterSpacing: -0.6, marginTop: 2 },
+  refreshBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  connectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    borderRadius: 18,
+    borderBottomWidth: 3,
+    borderBottomColor: '#3A3EB5',
+  },
+  connectBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  accountCard: { padding: 16, borderWidth: 1 },
   cardTopRow: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#FFF', fontSize: 18, fontWeight: '700' },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'rgba(0,0,0,0.18)',
+  },
+  avatarText: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
   cardEmail: { fontSize: 15, fontWeight: '700' },
   cardMeta: { fontSize: 12, marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4 },
+  statusBadge: { paddingHorizontal: 11, paddingVertical: 5 },
   statusText: { fontSize: 12, fontWeight: '700' },
-  progressTrack: { height: 6 },
-  progressFill: { height: 6 },
-  storageRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  storageText: { fontSize: 12 },
-  manageText: { fontSize: 12, fontWeight: '600' },
-  reauthorizeBtn: { paddingVertical: 13, alignItems: 'center' },
-  reauthorizeBtnText: { color: '#FFF', fontSize: 15, fontWeight: '700' },
-  prefCard: { padding: 16 },
-  prefTitle: { fontSize: 18, fontWeight: '700' },
+  progressTrack: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: 4 },
+  storageRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  storageText: { fontSize: 13, fontWeight: '500' },
+  managePill: {
+    borderWidth: 1,
+    borderColor: '#E2E6F3',
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: '#FFFFFF',
+  },
+  manageText: { fontSize: 12, fontWeight: '700' },
+  reauthorizeBtn: {
+    paddingVertical: 13,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: '#C43E1D',
+  },
+  reauthorizeBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  prefCard: {
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  prefTitle: { fontSize: 18, fontWeight: '800' },
   prefRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 },
-  prefLabel: { fontSize: 15 },
+  prefLabel: { fontSize: 15, fontWeight: '600' },
 });

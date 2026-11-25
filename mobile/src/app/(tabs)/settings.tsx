@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/theme';
+import { useTheme, palette, shadows3D } from '@/theme';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '@/store/useAuthStore';
 import { AppHeader } from '@/components/common/AppHeader';
 
@@ -52,10 +53,11 @@ export default function SettingsScreen() {
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <AppHeader title="Settings" subtitle="Preferences & Security" />
+    <LinearGradient colors={palette.pageGradient} style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <AppHeader title="Settings" subtitle="Preferences & Security" />
 
-      <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.huge }}>
+        <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: 110 }}>
         {/* Profile Card */}
         <View
           style={[
@@ -204,6 +206,7 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
+    </LinearGradient>
   );
 }
 
